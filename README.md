@@ -14,8 +14,14 @@ go-nhc \
   --mount /vsc-hard-mounts/leuven-user=10.118.240.67:/user=nfs4 \
   --mount /vsc-hard-mounts/leuven-data=10.118.240.67:/data=nfs4 \
   --mount /local_scratch=/dev/sda5=ext4 \
-  --memory 1024 \
-  --total-memory 1024 \
+  --memory 1024B \
+  --total-memory 1024B \
+  --dimms consistent \
   --hyperthreading disabled \
   --cpu-sockets 2 \
+  --disk-usage /local_scratch=98% \
+  --disk-usage /=85% \
+  --disk-usage /boot=40MB \
+  --disk-usage /home=98% \
+  --disk-usage /tmp=98%
 ```

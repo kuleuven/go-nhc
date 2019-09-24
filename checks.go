@@ -6,7 +6,13 @@ import (
     "regexp"
     "strconv"
     
+    "github.com/inhies/go-bytesize"
     linuxproc "github.com/c9s/goprocinfo/linux"
+)
+
+const (
+    cpuinfo_file = "/proc/cpuinfo"
+    meminfo_file = "/proc/meminfo"
 )
 
 func (c *Context) CheckInterface(iface string) (Check, error) {
@@ -106,21 +112,22 @@ func (c *Context) CheckFile(file string) (Check, error) {
 }
 
 func (c *Context) CheckFreeMemory(amount string) (Check, error) {
-    integer, err := strconv.ParseUint(amount, 10, 64)
+    th, err := bytesize.Parse(amount)
     if err != nil {
         return nil, err
     }
     return func() (Status, string) {
         if c.memInfo == nil {
             var err error
-            c.memInfo, err = linuxproc.ReadMemInfo("/proc/meminfo")
+            c.memInfo, err = linuxproc.ReadMemInfo(meminfo_file)
             if err != nil {
                 return Unknown, fmt.Sprintf("Could not parse meminfo: %s", err.Error())
             }
         }
 
-        if c.memInfo.MemFree < integer {
-            return Warning, fmt.Sprintf("Free memory is less than threshold %d: %d", integer, c.memInfo.MemFree)
+        if c.memInfo.MemFree < uint64(th) {
+            bs := bytesize.ByteSize(c.memInfo.MemFree)
+            return Warning, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
         }
 
         return OK, ""
@@ -128,21 +135,22 @@ func (c *Context) CheckFreeMemory(amount string) (Check, error) {
 }
 
 func (c *Context) CheckFreeSwap(amount string) (Check, error) {
-    integer, err := strconv.ParseUint(amount, 10, 64)
+    th, err := bytesize.Parse(amount)
     if err != nil {
         return nil, err
     }
     return func() (Status, string) {
         if c.memInfo == nil {
             var err error
-            c.memInfo, err = linuxproc.ReadMemInfo("/proc/meminfo")
+            c.memInfo, err = linuxproc.ReadMemInfo(meminfo_file)
             if err != nil {
                 return Unknown, fmt.Sprintf("Could not parse meminfo: %s", err.Error())
             }
         }
 
-        if c.memInfo.SwapFree < integer {
-            return Warning, fmt.Sprintf("Free memory is less than threshold %d: %d", integer, c.memInfo.SwapFree)
+        if c.memInfo.SwapFree < uint64(th) {
+            bs := bytesize.ByteSize(c.memInfo.SwapFree)
+            return Warning, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
         }
 
         return OK, ""
@@ -150,21 +158,62 @@ func (c *Context) CheckFreeSwap(amount string) (Check, error) {
 }
 
 func (c *Context) CheckFreeTotalMemory(amount string) (Check, error) {
-    integer, err := strconv.ParseUint(amount, 10, 64)
+    th, err := bytesize.Parse(amount)
     if err != nil {
         return nil, err
     }
     return func() (Status, string) {
         if c.memInfo == nil {
             var err error
-            c.memInfo, err = linuxproc.ReadMemInfo("/proc/meminfo")
+            c.memInfo, err = linuxproc.ReadMemInfo(meminfo_file)
             if err != nil {
                 return Unknown, fmt.Sprintf("Could not parse meminfo: %s", err.Error())
             }
         }
 
-        if c.memInfo.MemFree + c.memInfo.SwapFree < integer {
-            return Warning, fmt.Sprintf("Free memory is less than threshold %d: %d", integer, c.memInfo.MemFree + c.memInfo.SwapFree)
+        total := c.memInfo.MemFree + c.memInfo.SwapFree
+        if total < uint64(th) {
+            bs := bytesize.ByteSize(total)
+            return Warning, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
+        }
+
+        return OK, ""
+    }, nil
+}
+
+func (c *Context) CheckDimms(argument string) (Check, error) { 
+    return func() (Status, string) {
+        channels, err := ListMemoryChannels()
+        if err != nil {
+            return Unknown, fmt.Sprintf("Could not parse dimm info: %s", err.Error())
+        }
+
+
+        var dimmsPerChannel int
+        var dimmSize uint64
+
+        for _, channel := range channels {
+            if dimmsPerChannel == 0 {
+                dimmsPerChannel = len(channel.Dimms)
+
+                if dimmsPerChannel == 0 {
+                    return Warning, "First memory channel has no dimms"
+                }
+            } else if dimmsPerChannel != len(channel.Dimms) {
+                return Warning, fmt.Sprintf("Number of dimms differ per memory channel: first has %d channels, %s has %d channels", dimmsPerChannel, channel.Name, len(channel.Dimms))
+            }
+
+            for _, dimm := range channel.Dimms {
+                if dimmSize == 0 {
+                    dimmSize = dimm.Size
+
+                    if dimmSize == 0 {
+                        return Warning, "First dimm has no size"
+                    }
+                } else if dimmSize != dimm.Size {
+                    return Warning, fmt.Sprintf("Dimm sizes differ: first dimm has size %d, %s/%s has size %d", dimmSize, channel.Name, dimm.Name, dimm.Size)
+                }
+            }
         }
 
         return OK, ""
@@ -185,7 +234,7 @@ func (c *Context) CheckHyperthreading(state string) (Check, error) {
     return func() (Status, string) {
         if c.cpuInfo == nil {
             var err error
-            c.cpuInfo, err = linuxproc.ReadCPUInfo("/proc/cpuinfo")
+            c.cpuInfo, err = linuxproc.ReadCPUInfo(cpuinfo_file)
             if err != nil {
                 return Unknown, fmt.Sprintf("Could not parse cpuinfo: %s", err.Error())
             }
@@ -210,7 +259,7 @@ func (c *Context) CheckCPUSockets(amount string) (Check, error) {
     return func() (Status, string) {
         if c.cpuInfo == nil {
             var err error
-            c.cpuInfo, err = linuxproc.ReadCPUInfo("/proc/cpuinfo")
+            c.cpuInfo, err = linuxproc.ReadCPUInfo(cpuinfo_file)
             if err != nil {
                 return Unknown, fmt.Sprintf("Could not parse cpuinfo: %s", err.Error())
             }
@@ -224,4 +273,54 @@ func (c *Context) CheckCPUSockets(amount string) (Check, error) {
 
         return OK, ""
     }, nil
+}
+
+func (c *Context) CheckDiskUsage(mount string) (Check, error) {
+    parts := strings.SplitN(mount, "=", 2)
+    if len(parts) < 2 {
+        return nil, fmt.Errorf("Could not parse mountpoint and usage level %s", mount)
+    }
+
+    mountpoint := parts[0]
+    threshold := parts[1]
+
+    if strings.HasSuffix(threshold, "%") {
+        percent, err := strconv.ParseFloat(threshold[:len(threshold)-1], 32)
+        if err != nil {
+            return nil, err
+        }
+
+        return func() (Status, string) {
+            stat, err := DiskUsage(mountpoint)
+            if err != nil {
+                return Unknown, fmt.Sprintf("Could not retrieve disk usage: %s", err.Error())
+            }
+
+            if stat.Used > uint64(float64(stat.All) * percent) {
+                bs := bytesize.ByteSize(stat.Used)
+                return Critical, fmt.Sprintf("Disk usage is above %d%: %s", percent, bs.String())
+            }
+            
+            return OK, ""
+        }, nil
+    } else {
+        th, err := bytesize.Parse(threshold)
+        if err != nil {
+            return nil, err
+        }
+
+        return func() (Status, string) {
+            stat, err := DiskUsage(mountpoint)
+            if err != nil {
+                return Unknown, fmt.Sprintf("Could not retrieve disk usage: %s", err.Error())
+            }
+
+            if stat.Free < uint64(th) {
+                bs := bytesize.ByteSize(stat.Free)
+                return Critical, fmt.Sprintf("Free disk space is lower than threshold %s: %s", th.String(), bs.String())
+            }
+            
+            return OK, ""
+        }, nil
+    }
 }

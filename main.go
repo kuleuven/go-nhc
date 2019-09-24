@@ -34,12 +34,14 @@ func main() {
     context.RegisterEach("interface_%s", context.CheckInterface, *fCheckInterfaces)
     context.RegisterEach("ib_%s", context.CheckInfiniband, *fCheckInfinibands)
     context.RegisterEach("mount_%s", context.CheckMount, *fCheckMounts)
+    context.RegisterEach("du_%s", context.CheckDiskUsage, *fCheckDiskUsages)
     context.RegisterEach("file_%s", context.CheckFile, *fCheckFiles)
     context.Register("mem_phys", context.CheckFreeMemory, *fCheckFreeMemory)
     context.Register("mem_swap", context.CheckFreeSwap, *fCheckFreeSwap)
     context.Register("mem_total", context.CheckFreeTotalMemory, *fCheckFreeTotalMemory)
-    context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
+    context.Register("mem_dimms", context.CheckDimms, *fCheckDimms)
     context.Register("cpu_sockets", context.CheckCPUSockets, *fCheckCPUSockets)
+    context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
 
     context.RunChecks()
 }
