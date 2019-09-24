@@ -23,5 +23,6 @@ go-nhc \
   --disk-usage /=85% \
   --disk-usage /boot=40MB \
   --disk-usage /home=98% \
-  --disk-usage /tmp=98%
+  --disk-usage /tmp=98% \
+  --user vsc30001
 ```
