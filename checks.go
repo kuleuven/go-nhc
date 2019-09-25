@@ -430,6 +430,15 @@ func (c *Context) CheckUnauthorized(argument string) (Check, error) {
 			if pStatus.RealUid < m.MaxSystemUid {
 				continue OUTER
 			}
+
+			// Check whether the uid corresponds with a job uid - usually the case
+			for _, job := range c.jobInfo {
+				if job.Uid == pStatus.RealUid {
+					continue OUTER
+				}
+			}
+
+			// Check whether the uid is allowed because the corresponding user is in the group corresponding with the job gid (cfr. pbs_inode)
 			user, err := user.LookupId(fmt.Sprintf("%d", pStatus.RealUid))
 			if err != nil {
 				return Critical, fmt.Sprintf("Process %d is runned by unknown uid %d: %s", pStatus.Pid, pStatus.RealUid, err.Error())
@@ -447,9 +456,6 @@ func (c *Context) CheckUnauthorized(argument string) (Check, error) {
 				groupInts = append(groupInts, groupInt)
 			}
 			for _, job := range c.jobInfo {
-				if job.Uid == pStatus.RealUid {
-					continue OUTER
-				}
 				for _, gid := range groupInts {
 					if job.Gid == gid {
 						continue OUTER
