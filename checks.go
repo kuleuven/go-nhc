@@ -89,7 +89,7 @@ func (c *Context) CheckMount(argument string) (Check, error) {
 		}
 
 		for _, mount := range c.mounts.Mounts {
-			if mount.MountPoint == m.MountPoint {
+			if mount.MountPoint == m.MountPoint && mount.FSType != "autofs" {
 				if m.Device != "" && mount.Device != m.Device {
 					return Critical, fmt.Sprintf("Mount point %s does not match required device %s: %s", m.MountPoint, m.Device, mount.Device)
 				}
