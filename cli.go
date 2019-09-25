@@ -29,6 +29,9 @@ var (
 	fCheckHyperthreading  = fApp.Flag("hyperthreading", "Check whether hyperthreading is enabled or disabled").Default("").Enum("enabled", "disabled", "")
 	fCheckCPUSockets      = fApp.Flag("cpu-sockets", "Check whether the given amount of cpu sockets is present").Default("").String()
 	fCheckUnauthorized    = fApp.Flag("unauthorized", "Check whether unauthorized jobs are running, not governed by the specified job scheduler").Default("").Enum("pbs", "")
+
+    fVerbose = fApp.Flag("verbose", "Verbose mode - print message if all checks succeeded").Short('v').Bool()
+    fAll = fApp.Flag("all", "Run all checks, do not stop on first failed check").Short('a').Bool()
 )
 
 var (

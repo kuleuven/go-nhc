@@ -48,7 +48,7 @@ func main() {
 	context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
 	context.Register("ps_unauthorized", context.CheckUnauthorized, *fCheckUnauthorized)
 
-	context.RunChecks()
+	context.RunChecks(*fVerbose, *fAll)
 }
 
 func (c *Context) RegisterEach(id_format string, factory CheckFactory, arguments []string) {
@@ -73,17 +73,37 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 	c.checks[id] = check
 }
 
-func (c *Context) RunChecks() {
+func (c *Context) RunChecks(verbose bool, all bool) {
+    var rc int
+    var failed int
+
 	for id, check := range c.checks {
 		status, message := check()
 
 		if status != OK {
 			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
-			os.Exit(status.RC())
+            checkRC := status.RC()
+
+            if ! all {
+			    os.Exit(checkRC)
+            } else {
+                failed++
+                if rc < checkRC {
+                    rc = checkRC
+                }
+            }
 		}
 	}
 
-	fmt.Println("All checks returned OK")
+    if verbose {
+        if failed > 0 {
+            fmt.Printf("%d checks failed\n", failed)
+        } else {
+	        fmt.Println("All checks returned OK")
+        }
+    }
+
+    os.Exit(rc)
 }
 
 func ArgumentToId(argument string) string {
