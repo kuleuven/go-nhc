@@ -36,7 +36,7 @@ var (
 )
 
 var (
-	metadataMapRegex = regexp.MustCompile("[:=]")
+	metadataMapRegex = regexp.MustCompile("[=]")
 	stringType       = reflect.TypeOf("")
 	intType          = reflect.TypeOf(0)
 	uint64Type       = reflect.TypeOf(uint64(0))
