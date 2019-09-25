@@ -1,6 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/iancoleman/strcase"
+	"github.com/inhies/go-bytesize"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -19,9 +27,77 @@ var (
 	fCheckDimms           = fApp.Flag("dimms", "Check that each memory channel has the same number of dimms, and that the dimm size is consistent").Default("").Enum("consistent", "")
 	fCheckHyperthreading  = fApp.Flag("hyperthreading", "Check whether hyperthreading is enabled or disabled").Default("").Enum("enabled", "disabled", "")
 	fCheckCPUSockets      = fApp.Flag("cpu-sockets", "Check whether the given amount of cpu sockets is present").Default("").String()
-
-	//fBackendPort          = fApp.Flag("port", "Port").Default("2200").Int()
-	//fBackendSSHPort       = fApp.Flag("ssh-port", "Port of SSH process").Default("22").Int()
-	//fBackendLimitServerIP = fApp.Flag("limit", "Limit backend access to these published balancer addresses").Default("0.0.0.0").IPList()
-
 )
+
+var (
+	metadataMapRegex = regexp.MustCompile("[:=]")
+	stringType       = reflect.TypeOf("")
+	intType          = reflect.TypeOf(0)
+	boolType         = reflect.TypeOf(false)
+	byteSizeType     = reflect.TypeOf(bytesize.ByteSize(0))
+)
+
+func ParseMetadata(meta interface{}, argument string, default_key string) error {
+	arguments := strings.Split(argument, " ")
+	target := reflect.ValueOf(meta).Elem()
+
+	for index, value := range arguments {
+		parts := metadataMapRegex.Split(value, 2)
+
+		var key string
+		var str string
+
+		if index == 0 && len(parts) == 1 && default_key != "" {
+			key = default_key
+			str = parts[0]
+		} else if len(parts) != 2 {
+			return fmt.Errorf("expected KEY=VALUE got '%s'", value)
+		} else {
+			key = parts[0]
+			str = parts[1]
+		}
+
+		field := target.FieldByName(strcase.ToCamel(key))
+		if !field.IsValid() {
+			return fmt.Errorf("got unallowed key '%s'", key)
+		}
+
+		var val reflect.Value
+
+		switch field.Type() {
+		case stringType:
+			val = reflect.ValueOf(str)
+
+		case intType:
+			i, err := strconv.Atoi(str)
+			if err != nil {
+				return err
+			}
+			val = reflect.ValueOf(i)
+
+		case boolType:
+			switch str {
+			case "yes", "y", "true", "1":
+				val = reflect.ValueOf(true)
+			case "no", "n", "false", "0":
+				val = reflect.ValueOf(false)
+			default:
+				return fmt.Errorf("Unknown value for boolean: '%s'", str)
+			}
+
+		case byteSizeType:
+			v, err := bytesize.Parse(str)
+			if err != nil {
+				return err
+			}
+			val = reflect.ValueOf(v)
+
+		default:
+			return fmt.Errorf("Cannot handle type '%s'", field.Type().String())
+		}
+
+		field.Set(val)
+	}
+
+	return nil
+}

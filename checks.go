@@ -22,59 +22,49 @@ func (c *Context) CheckInterface(iface string) (Check, error) {
 	}, nil
 }
 
-func (c *Context) CheckInfiniband(device_info string) (Check, error) {
-	parts := strings.SplitN(device_info, "=", 2)
-	if len(parts) < 2 {
-		return nil, fmt.Errorf("Could not parse device %s", device_info)
-	}
+type InfinibandMetadata struct {
+	Device string
+	Port   int
+	Speed  int
+}
 
-	speed, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return nil, err
-	}
-
-	parts = strings.SplitN(parts[0], ":", 2)
-	if len(parts) < 2 {
-		return nil, fmt.Errorf("Could not parse device %s", device_info)
-	}
-
-	device := parts[0]
-
-	port, err := strconv.Atoi(parts[1])
+func (c *Context) CheckInfiniband(argument string) (Check, error) {
+	m := &InfinibandMetadata{}
+	err := ParseMetadata(m, argument, "Device")
 	if err != nil {
 		return nil, err
 	}
 
 	state_re := regexp.MustCompile("4: ACTIVE")
-	speed_re, err := regexp.Compile(fmt.Sprintf("^%d\\s", speed))
+	speed_re, err := regexp.Compile(fmt.Sprintf("^%d\\s", m.Speed))
 	if err != nil {
 		return nil, err
 	}
 
 	return func() (Status, string) {
-		file := fmt.Sprintf("/sys/class/infiniband/%s/ports/%d/state", device, port)
+		file := fmt.Sprintf("/sys/class/infiniband/%s/ports/%d/state", m.Device, m.Port)
 		status, message := AssureContent(file, state_re)
 		if status != OK {
 			return status, message
 		}
 
-		file = fmt.Sprintf("/sys/class/infiniband/%s/ports/%d/rate", device, port)
+		file = fmt.Sprintf("/sys/class/infiniband/%s/ports/%d/rate", m.Device, m.Port)
 		return AssureContent(file, speed_re)
 	}, nil
 }
 
-func (c *Context) CheckMount(mount string) (Check, error) {
-	parts := strings.SplitN(mount, "=", 3)
-	mountpoint := parts[0]
+type MountMetadata struct {
+	MountPoint string
+	Device     string
+	FsType     string
+	ReadOnly   bool
+}
 
-	var device string
-	if len(parts) > 1 {
-		device = parts[1]
-	}
-
-	var fstype string
-	if len(parts) > 2 {
-		fstype = parts[2]
+func (c *Context) CheckMount(argument string) (Check, error) {
+	m := &MountMetadata{}
+	err := ParseMetadata(m, argument, "MountPoint")
+	if err != nil {
+		return nil, err
 	}
 
 	return func() (Status, string) {
@@ -87,22 +77,22 @@ func (c *Context) CheckMount(mount string) (Check, error) {
 		}
 
 		for _, mount := range c.mounts.Mounts {
-			if mount.MountPoint == mountpoint {
-				if device != "" && mount.Device != device {
-					return Critical, fmt.Sprintf("Mountpoint %s does not match required device %s: %s", mountpoint, device, mount.Device)
+			if mount.MountPoint == m.MountPoint {
+				if m.Device != "" && mount.Device != m.Device {
+					return Critical, fmt.Sprintf("Mount point %s does not match required device %s: %s", m.MountPoint, m.Device, mount.Device)
 				}
-				if fstype != "" && mount.FSType != fstype {
-					return Warning, fmt.Sprintf("Mountpoint %s does not match required fstype %s: %s", mountpoint, fstype, mount.FSType)
+				if m.FsType != "" && mount.FSType != m.FsType {
+					return Warning, fmt.Sprintf("Mount point %s does not match required fstype %s: %s", m.MountPoint, m.FsType, mount.FSType)
 				}
-				if mount.Options != "rw" && !strings.HasPrefix(mount.Options, "rw,") {
-					return Critical, fmt.Sprintf("Mountpoint %s is not mounted read-write: %s", mountpoint, mount.Options)
+				if !m.ReadOnly && mount.Options != "rw" && !strings.HasPrefix(mount.Options, "rw,") {
+					return Critical, fmt.Sprintf("Mount point %s is not mounted read-write: %s", m.MountPoint, mount.Options)
 				}
 
 				return OK, ""
 			}
 		}
 
-		return Critical, fmt.Sprintf("Mountpoint %s is not mounted", mountpoint)
+		return Critical, fmt.Sprintf("Mount point %s is not mounted", m.MountPoint)
 	}, nil
 }
 
@@ -285,52 +275,35 @@ func (c *Context) CheckCPUSockets(amount string) (Check, error) {
 	}, nil
 }
 
-func (c *Context) CheckDiskUsage(mount string) (Check, error) {
-	parts := strings.SplitN(mount, "=", 2)
-	if len(parts) < 2 {
-		return nil, fmt.Errorf("Could not parse mountpoint and usage level %s", mount)
+type DiskUsageMetadata struct {
+	MountPoint     string
+	MaxUsedPercent int
+	MinFree        bytesize.ByteSize
+}
+
+func (c *Context) CheckDiskUsage(argument string) (Check, error) {
+	m := &DiskUsageMetadata{}
+	err := ParseMetadata(m, argument, "MountPoint")
+	if err != nil {
+		return nil, err
 	}
 
-	mountpoint := parts[0]
-	threshold := parts[1]
-
-	if strings.HasSuffix(threshold, "%") {
-		percent, err := strconv.ParseFloat(threshold[:len(threshold)-1], 32)
+	return func() (Status, string) {
+		stat, err := DiskUsage(m.MountPoint)
 		if err != nil {
-			return nil, err
+			return Unknown, fmt.Sprintf("Could not retrieve disk usage: %s", err.Error())
 		}
 
-		return func() (Status, string) {
-			stat, err := DiskUsage(mountpoint)
-			if err != nil {
-				return Unknown, fmt.Sprintf("Could not retrieve disk usage: %s", err.Error())
-			}
-
-			if stat.Used > uint64(float64(stat.All)*percent) {
-				bs := bytesize.ByteSize(stat.Used)
-				return Critical, fmt.Sprintf("Disk usage is above %d%: %s", percent, bs.String())
-			}
-
-			return OK, ""
-		}, nil
-	} else {
-		th, err := bytesize.Parse(threshold)
-		if err != nil {
-			return nil, err
+		if m.MaxUsedPercent > 0 && stat.Used*100 > stat.All*uint64(m.MaxUsedPercent) {
+			bs := bytesize.ByteSize(stat.Used)
+			return Critical, fmt.Sprintf("Disk usage is above %d%: %s", m.MaxUsedPercent, bs.String())
 		}
 
-		return func() (Status, string) {
-			stat, err := DiskUsage(mountpoint)
-			if err != nil {
-				return Unknown, fmt.Sprintf("Could not retrieve disk usage: %s", err.Error())
-			}
+		if uint64(m.MinFree) > 0 && stat.Free < uint64(m.MinFree) {
+			bs := bytesize.ByteSize(stat.Free)
+			return Critical, fmt.Sprintf("Free disk space is lower than threshold %s: %s", m.MinFree.String(), bs.String())
+		}
 
-			if stat.Free < uint64(th) {
-				bs := bytesize.ByteSize(stat.Free)
-				return Critical, fmt.Sprintf("Free disk space is lower than threshold %s: %s", th.String(), bs.String())
-			}
-
-			return OK, ""
-		}, nil
-	}
+		return OK, ""
+	}, nil
 }
