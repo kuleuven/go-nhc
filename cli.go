@@ -22,6 +22,7 @@ var (
 	fCheckFiles           = fApp.Flag("file", "Check whether the listed files exist").Default("").Strings()
 	fCheckUsers           = fApp.Flag("user", "Check whether the listed users exist").Default("").Strings()
 	fCheckProcesses       = fApp.Flag("process", "Check whether the given service is running, format: '<SERVICE> [daemon=<PROCESS_NAME>] [user=<USER>]'").Default("").Strings()
+	fCheckCommands        = fApp.Flag("command", "Check whether the given command returns successfully").Default("").Strings()
 	fCheckFreeMemory      = fApp.Flag("memory", "Check whether the given amount of physical memory is free").Default("").String()
 	fCheckFreeSwap        = fApp.Flag("swap", "Check whether the given amount of swap memory is free").Default("").String()
 	fCheckFreeTotalMemory = fApp.Flag("total-memory", "Check whether the given amount of total memory is free").Default("").String()
@@ -30,8 +31,8 @@ var (
 	fCheckCPUSockets      = fApp.Flag("cpu-sockets", "Check whether the given amount of cpu sockets is present").Default("").String()
 	fCheckUnauthorized    = fApp.Flag("unauthorized", "Check whether unauthorized jobs are running, not governed by the specified job scheduler").Default("").String()
 
-    fVerbose = fApp.Flag("verbose", "Verbose mode - print message if all checks succeeded").Short('v').Bool()
-    fAll = fApp.Flag("all", "Run all checks, do not stop on first failed check").Short('a').Bool()
+	fVerbose = fApp.Flag("verbose", "Verbose mode - print message if all checks succeeded").Short('v').Bool()
+	fAll     = fApp.Flag("all", "Run all checks, do not stop on first failed check").Short('a').Bool()
 )
 
 var (

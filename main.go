@@ -40,6 +40,7 @@ func main() {
 	context.RegisterEach("file_%s", context.CheckFile, *fCheckFiles)
 	context.RegisterEach("user_%s", context.CheckUser, *fCheckUsers)
 	context.RegisterEach("ps_%s", context.CheckProcess, *fCheckProcesses)
+	context.RegisterEach("cmd_%s", context.CheckCommand, *fCheckCommands)
 	context.Register("mem_phys", context.CheckFreeMemory, *fCheckFreeMemory)
 	context.Register("mem_swap", context.CheckFreeSwap, *fCheckFreeSwap)
 	context.Register("mem_total", context.CheckFreeTotalMemory, *fCheckFreeTotalMemory)
@@ -74,36 +75,36 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 }
 
 func (c *Context) RunChecks(verbose bool, all bool) {
-    var rc int
-    var failed int
+	var rc int
+	var failed int
 
 	for id, check := range c.checks {
 		status, message := check()
 
 		if status != OK {
 			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
-            checkRC := status.RC()
+			checkRC := status.RC()
 
-            if ! all {
-			    os.Exit(checkRC)
-            } else {
-                failed++
-                if rc < checkRC {
-                    rc = checkRC
-                }
-            }
+			if !all {
+				os.Exit(checkRC)
+			} else {
+				failed++
+				if rc < checkRC {
+					rc = checkRC
+				}
+			}
 		}
 	}
 
-    if verbose {
-        if failed > 0 {
-            fmt.Printf("%d checks failed\n", failed)
-        } else {
-	        fmt.Println("All checks returned OK")
-        }
-    }
+	if verbose {
+		if failed > 0 {
+			fmt.Printf("%d checks failed\n", failed)
+		} else {
+			fmt.Println("All checks returned OK")
+		}
+	}
 
-    os.Exit(rc)
+	os.Exit(rc)
 }
 
 func ArgumentToId(argument string) string {

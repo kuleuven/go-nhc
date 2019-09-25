@@ -453,3 +453,15 @@ func (c *Context) CheckUnauthorized(argument string) (Check, error) {
 		return OK, ""
 	}, nil
 }
+
+func (c *Context) CheckCommand(argument string) (Check, error) {
+	return func() (Status, string) {
+		cmd := exec.Command("/bin/sh", "-c", argument)
+		err := cmd.Run()
+		if err != nil {
+			return Critical, fmt.Sprintf("Command %s could not run successfully: %s", argument, err.Error())
+		}
+
+		return OK, ""
+	}, nil
+}
