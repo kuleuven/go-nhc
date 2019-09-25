@@ -1,7 +1,10 @@
+// +build linux
+
 package main
 
 import (
 	"fmt"
+	"os/exec"
 	"os/user"
 	"regexp"
 	"strconv"
@@ -302,6 +305,149 @@ func (c *Context) CheckDiskUsage(argument string) (Check, error) {
 		if uint64(m.MinFree) > 0 && stat.Free < uint64(m.MinFree) {
 			bs := bytesize.ByteSize(stat.Free)
 			return Critical, fmt.Sprintf("Free disk space is lower than threshold %s: %s", m.MinFree.String(), bs.String())
+		}
+
+		return OK, ""
+	}, nil
+}
+
+type ProcessMetadata struct {
+	Service string
+	Daemon  string
+	User    string
+	Start   bool
+	Restart bool
+}
+
+func (c *Context) CheckProcess(argument string) (Check, error) {
+	m := &ProcessMetadata{}
+	err := ParseMetadata(m, argument, "Service")
+	if err != nil {
+		return nil, err
+	}
+
+	if m.Daemon == "" {
+		m.Daemon = m.Service
+	}
+
+	return func() (Status, string) {
+		if c.psInfo == nil {
+			var err error
+			c.psInfo, err = ListProcesses()
+			if err != nil {
+				return Unknown, fmt.Sprintf("Could not parse process info: %s", err.Error())
+			}
+		}
+
+		for _, pStatus := range c.psInfo {
+			if pStatus.Name == m.Daemon {
+				if m.User != "" {
+					user, err := user.Lookup(m.User)
+					if err != nil {
+						return Unknown, fmt.Sprintf("Could not lookup %s: %s", m.User, err.Error())
+					}
+					uid, err := strconv.ParseUint(user.Uid, 10, 64)
+					if err != nil {
+						return Unknown, fmt.Sprintf("Could not parse uid %s: %s", user.Uid, err.Error())
+					}
+					if pStatus.EffectiveUid != uid {
+						return Warning, fmt.Sprintf("Process %s is not running under user %d (%s), but %d", uid, m.User, pStatus.EffectiveUid)
+					}
+				}
+
+				return OK, ""
+			}
+		}
+
+		if m.Start || m.Restart {
+			var action string
+			switch {
+			case m.Start:
+				action = "start"
+			case m.Restart:
+				action = "restart"
+			}
+
+			cmd := exec.Command("/usr/bin/systemctl", action, m.Service)
+			err := cmd.Run()
+			if err != nil {
+				return Critical, fmt.Sprintf("Process %s not found, and could not start: %s", m.Service, err.Error())
+			}
+			return Warning, fmt.Sprintf("Process %s not found, %sed it successfully", m.Service, action)
+		}
+
+		return Critical, fmt.Sprintf("Process %s not found", m.Service)
+	}, nil
+}
+
+type UnauthorizedMetadata struct {
+	Scheduler    string
+	MaxSystemUid uint64
+}
+
+func (c *Context) CheckUnauthorized(argument string) (Check, error) {
+	m := &UnauthorizedMetadata{}
+	err := ParseMetadata(m, argument, "Scheduler")
+	if err != nil {
+		return nil, err
+	}
+	switch m.Scheduler {
+	case "pbs":
+	default:
+		return nil, fmt.Errorf("Unknown job scheduler %s", m.Scheduler)
+	}
+	if m.MaxSystemUid == 0 {
+		m.MaxSystemUid = 1000
+	}
+
+	return func() (Status, string) {
+		if c.psInfo == nil {
+			var err error
+			c.psInfo, err = ListProcesses()
+			if err != nil {
+				return Unknown, fmt.Sprintf("Could not parse process info: %s", err.Error())
+			}
+		}
+		if c.jobInfo == nil {
+			var err error
+			c.jobInfo, err = ListPBSJobs()
+			if err != nil {
+				return Unknown, fmt.Sprintf("Could not parse job info for %s: %s", argument, err.Error())
+			}
+		}
+
+	OUTER:
+		for _, pStatus := range c.psInfo {
+			if pStatus.RealUid < m.MaxSystemUid {
+				continue OUTER
+			}
+			user, err := user.LookupId(fmt.Sprintf("%d", pStatus.RealUid))
+			if err != nil {
+				return Critical, fmt.Sprintf("Process %d is runned by unknown uid %d: %s", pStatus.Pid, pStatus.RealUid, err.Error())
+			}
+			groups, err := user.GroupIds()
+			if err != nil {
+				return Critical, fmt.Sprintf("Could not lookup groups of user %d (%s): %s", pStatus.RealUid, user.Username, err.Error())
+			}
+			groupInts := []uint64{}
+			for _, group := range groups {
+				groupInt, err := strconv.ParseUint(group, 10, 64)
+				if err != nil {
+					return Critical, fmt.Sprintf("Could not parse group ids for user %d (%s): %s", pStatus.RealUid, user.Username, err.Error())
+				}
+				groupInts = append(groupInts, groupInt)
+			}
+			for _, job := range c.jobInfo {
+				if job.Uid == pStatus.RealUid {
+					continue OUTER
+				}
+				for _, gid := range groupInts {
+					if job.Gid == gid {
+						continue OUTER
+					}
+				}
+			}
+			return Critical, fmt.Sprintf("Process %d of user %d (%s) is unauthorized", pStatus.Pid, pStatus.RealUid, user.Username)
 		}
 
 		return OK, ""

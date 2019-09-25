@@ -16,23 +16,26 @@ var (
 	fApp = kingpin.New(programName, "Node Health Check")
 
 	fCheckInterfaces      = fApp.Flag("interface", "Check the listed network interfaces").Default("").Strings()
-	fCheckInfinibands     = fApp.Flag("infiniband", "Check the listed infiniband ports, format: device:port=speed").Default("").Strings()
-	fCheckMounts          = fApp.Flag("mount", "Check whether the listed mounts exist, format: mountpoint[=device[=fstype]]").Default("").Strings()
-	fCheckDiskUsages      = fApp.Flag("disk-usage", "Check whether the disk usage is below the threshold, format: mountpoint=threshold. Threshold can be the minimum free space in bytes, or the maximum percentage of disk that may be filled.").Default("").Strings()
+	fCheckInfinibands     = fApp.Flag("infiniband", "Check the listed infiniband ports, format: '<DEV> port=<PORT> speed=<NUM>'").Default("").Strings()
+	fCheckMounts          = fApp.Flag("mount", "Check whether the listed mounts exist, format: '<MOUNTPOINT> [device=<DEV>] [fs_type=<TYPE>]'").Default("").Strings()
+	fCheckDiskUsages      = fApp.Flag("disk-usage", "Check whether the disk usage is below the threshold, format: 'mountpoint [max_used_percent=<INT>] [min_free=<SIZE>]'").Default("").Strings()
 	fCheckFiles           = fApp.Flag("file", "Check whether the listed files exist").Default("").Strings()
 	fCheckUsers           = fApp.Flag("user", "Check whether the listed users exist").Default("").Strings()
+	fCheckProcesses       = fApp.Flag("process", "Check whether the given service is running, format: '<SERVICE> [daemon=<PROCESS_NAME>] [user=<USER>]'").Default("").Strings()
 	fCheckFreeMemory      = fApp.Flag("memory", "Check whether the given amount of physical memory is free").Default("").String()
 	fCheckFreeSwap        = fApp.Flag("swap", "Check whether the given amount of swap memory is free").Default("").String()
 	fCheckFreeTotalMemory = fApp.Flag("total-memory", "Check whether the given amount of total memory is free").Default("").String()
 	fCheckDimms           = fApp.Flag("dimms", "Check that each memory channel has the same number of dimms, and that the dimm size is consistent").Default("").Enum("consistent", "")
 	fCheckHyperthreading  = fApp.Flag("hyperthreading", "Check whether hyperthreading is enabled or disabled").Default("").Enum("enabled", "disabled", "")
 	fCheckCPUSockets      = fApp.Flag("cpu-sockets", "Check whether the given amount of cpu sockets is present").Default("").String()
+	fCheckUnauthorized    = fApp.Flag("unauthorized", "Check whether unauthorized jobs are running, not governed by the specified job scheduler").Default("").Enum("pbs", "")
 )
 
 var (
 	metadataMapRegex = regexp.MustCompile("[:=]")
 	stringType       = reflect.TypeOf("")
 	intType          = reflect.TypeOf(0)
+	uint64Type       = reflect.TypeOf(uint64(0))
 	boolType         = reflect.TypeOf(false)
 	byteSizeType     = reflect.TypeOf(bytesize.ByteSize(0))
 )
@@ -70,6 +73,13 @@ func ParseMetadata(meta interface{}, argument string, default_key string) error 
 
 		case intType:
 			i, err := strconv.Atoi(str)
+			if err != nil {
+				return err
+			}
+			val = reflect.ValueOf(i)
+
+		case uint64Type:
+			i, err := strconv.ParseUint(str, 10, 64)
 			if err != nil {
 				return err
 			}

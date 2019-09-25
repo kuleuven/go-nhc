@@ -19,6 +19,8 @@ type Context struct {
 	mounts  *linuxproc.Mounts
 	memInfo *linuxproc.MemInfo
 	cpuInfo *linuxproc.CPUInfo
+	psInfo  []*linuxproc.ProcessStatus
+	jobInfo []Job
 }
 
 func main() {
@@ -37,12 +39,14 @@ func main() {
 	context.RegisterEach("du_%s", context.CheckDiskUsage, *fCheckDiskUsages)
 	context.RegisterEach("file_%s", context.CheckFile, *fCheckFiles)
 	context.RegisterEach("user_%s", context.CheckUser, *fCheckUsers)
+	context.RegisterEach("ps_%s", context.CheckProcess, *fCheckProcesses)
 	context.Register("mem_phys", context.CheckFreeMemory, *fCheckFreeMemory)
 	context.Register("mem_swap", context.CheckFreeSwap, *fCheckFreeSwap)
 	context.Register("mem_total", context.CheckFreeTotalMemory, *fCheckFreeTotalMemory)
 	context.Register("mem_dimms", context.CheckDimms, *fCheckDimms)
 	context.Register("cpu_sockets", context.CheckCPUSockets, *fCheckCPUSockets)
 	context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
+	context.Register("ps_unauthorized", context.CheckUnauthorized, *fCheckUnauthorized)
 
 	context.RunChecks()
 }
@@ -83,7 +87,7 @@ func (c *Context) RunChecks() {
 }
 
 func ArgumentToId(argument string) string {
-	parts := strings.SplitN(argument, "=", 2)
+	parts := strings.SplitN(argument, " ", 2)
 	re := regexp.MustCompile(`[_/:]+`)
 	argument = re.ReplaceAllString(parts[0], "_")
 	return strings.TrimLeft(argument, "_")

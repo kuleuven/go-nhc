@@ -24,5 +24,18 @@ go-nhc \
   --disk-usage '/boot min_free=40MB' \
   --disk-usage '/home max_used_percent=98' \
   --disk-usage '/tmp max_used_percent=98' \
-  --user vsc30001
+  --user vsc30001 \
+  --process 'pbs_mom user=root start=yes' \
+  --process 'trqauthd user=root start=yes' \
+  --process 'sshd user=root start=yes' \
+  --process 'polkitd user=polkitd start=yes' \
+  --process 'ntpd start=yes' \
+  --process 'sssd user=root start=yes' \
+  --process 'nscd user=nscd start=yes' \
+  --process 'crond user=root start=yes' \
+  --process 'nfslock daemon=rpc.statd restart=yes' \
+  --process 'rpcbind restart=yes' \
+  --process 'autofs daemon=automount user=root start=yes' \
+  --process 'postfix daemon=qmgr restart=yes' \
+  --unauthorized 'pbs max_system_uid=9000'
 ```
