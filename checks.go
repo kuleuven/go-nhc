@@ -38,6 +38,15 @@ func (c *Context) CheckInfiniband(argument string) (Check, error) {
 		return nil, err
 	}
 
+	parts := strings.SplitN(m.Device, ":", 2)
+	if m.Port == 0 && len(parts) == 2 {
+		m.Device = parts[0]
+		m.Port, err = strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	state_re := regexp.MustCompile("4: ACTIVE")
 	speed_re, err := regexp.Compile(fmt.Sprintf("^%d\\s", m.Speed))
 	if err != nil {
