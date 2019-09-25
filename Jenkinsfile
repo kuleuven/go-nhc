@@ -18,6 +18,7 @@ node () {
     stage(name: 'prepare dir') {
         sh "rm -rf ${destination}"
         sh "mkdir -p ${destination}/usr/bin/"
+        sh "mkdir -p ${destination}/usr/sbin/"
         sh "mkdir -p ${destination}/etc/bash_completion.d/"
         sh "mkdir -p ${destination}/usr/share/man/man1/"
     }
@@ -25,6 +26,7 @@ node () {
     sh "mv -v ${project} ${destination}/usr/bin/"
     sh "mv -v ${project}.bash_completion ${destination}/etc/bash_completion.d/${project}"
     sh "mv -v ${project}.1.gz ${destination}/usr/share/man/man1/${project}.1.gz"
+    sh "cp -v nhc ${destination}/usr/sbin/"
 
     stash name: unstash_entry_name, includes: destination+"/**/*"
     }
@@ -33,4 +35,5 @@ node () {
 buildRpm {
     unstash = unstash_entry_name
     repository = 'icts-p-lnx-hpc-rpm-local/7'
+    extra_parameters = '--conflicts lbnl-nhc'
 }

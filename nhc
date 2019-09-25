@@ -1,0 +1,15 @@
+#!/bin/sh
+find /sys/fs/cgroup/ -name monitoring.slice -exec sh -c 'echo '$$' > {}/tasks' \;
+
+CONFIG=/etc/nhc.conf
+
+if [ -f $CONFIG ]; then
+  ARGS=/usr/bin/go-nhc
+  while read LINE; do
+    ARGS="$ARGS --${LINE}"
+  done < $CONFIG
+  eval "$ARGS" "$@"
+else
+  echo "No config file found"
+  exit 128
+fi
