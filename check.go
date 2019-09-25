@@ -27,3 +27,26 @@ func (s Status) String() string {
 func (s Status) RC() int {
 	return int(s)
 }
+
+func (s Status) Compare(t Status) int {
+	if s == t {
+		return 0
+	}
+	if t == Critical {
+		return -1
+	}
+	if s == Critical {
+		return 1
+	}
+	if t == Warning {
+		return -1
+	}
+	if s == Warning {
+		return 1
+	}
+	if s < t {
+		return -1
+	} else {
+		return 1
+	}
+}

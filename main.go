@@ -75,7 +75,7 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 }
 
 func (c *Context) RunChecks(verbose bool, all bool, send bool) {
-	var rc int
+	var global Status
 	var failed int
 
 	for id, check := range c.checks {
@@ -90,15 +90,14 @@ func (c *Context) RunChecks(verbose bool, all bool, send bool) {
 
 		if status != OK {
 			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
-			checkRC := status.RC()
 
 			if !all {
-				os.Exit(checkRC)
-			} else {
-				failed++
-				if rc < checkRC {
-					rc = checkRC
-				}
+				os.Exit(status.RC())
+			}
+
+			failed++
+			if status.Compare(global) > 0 {
+				global = status
 			}
 		}
 	}
@@ -111,7 +110,7 @@ func (c *Context) RunChecks(verbose bool, all bool, send bool) {
 		}
 	}
 
-	os.Exit(rc)
+	os.Exit(global.RC())
 }
 
 func ArgumentToId(argument string) string {

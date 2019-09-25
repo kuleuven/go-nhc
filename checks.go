@@ -308,7 +308,7 @@ func (c *Context) CheckDiskUsage(argument string) (Check, error) {
 
 		if m.MaxUsedPercent > 0 && stat.Used*100 > stat.All*uint64(m.MaxUsedPercent) {
 			bs := bytesize.ByteSize(stat.Used)
-			return Critical, fmt.Sprintf("Disk usage is above %d%: %s", m.MaxUsedPercent, bs.String())
+			return Critical, fmt.Sprintf("Disk usage is above %d%%: %s", m.MaxUsedPercent, bs.String())
 		}
 
 		if uint64(m.MinFree) > 0 && stat.Free < uint64(m.MinFree) {
