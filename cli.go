@@ -33,6 +33,7 @@ var (
 
 	fVerbose = fApp.Flag("verbose", "Verbose mode - print message if all checks succeeded").Short('v').Bool()
 	fAll     = fApp.Flag("all", "Run all checks, do not stop on first failed check").Short('a').Bool()
+	fSend    = fApp.Flag("send", "Send check results to sensu agent").Short('s').Bool()
 )
 
 var (

@@ -49,7 +49,7 @@ func main() {
 	context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
 	context.Register("ps_unauthorized", context.CheckUnauthorized, *fCheckUnauthorized)
 
-	context.RunChecks(*fVerbose, *fAll)
+	context.RunChecks(*fVerbose, *fAll, *fSend)
 }
 
 func (c *Context) RegisterEach(id_format string, factory CheckFactory, arguments []string) {
@@ -74,12 +74,19 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 	c.checks[id] = check
 }
 
-func (c *Context) RunChecks(verbose bool, all bool) {
+func (c *Context) RunChecks(verbose bool, all bool, send bool) {
 	var rc int
 	var failed int
 
 	for id, check := range c.checks {
 		status, message := check()
+
+		if send {
+			err := SendSensuResult(id, status, message)
+			if err != nil {
+				fmt.Printf("Sending result of %s to sensu failed: %s\n", id, err.Error())
+			}
+		}
 
 		if status != OK {
 			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
