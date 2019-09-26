@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
+	"os"
 	"os/exec"
 	"os/user"
 	"regexp"
@@ -28,20 +30,60 @@ func (c *Context) CheckInterface(iface string) (Check, error) {
 }
 
 type InfinibandMetadata struct {
-	Device string
-	Port   int
-	Speed  int
+	Device   string
+	Port     int
+	Speed    int
+	Warning  uint64
+	Critical uint64
 }
 
+var (
+	infinibandCounters = map[string]string{
+		"SymbolErrorCounter":           "symbol_error",
+		"LinkErrorRecoveryCounter":     "link_error_recovery",
+		"LinkDownedCounter":            "link_downed",
+		"PortRcvErrors":                "port_rcv_errors",
+		"PortRcvRemotePhysicalErrors":  "port_rcv_remote_physical_errors",
+		"PortRcvSwitchRelayErrors":     "port_rcv_switch_relay_errors",
+		"PortXmitDiscards":             "port_xmit_discards",
+		"PortXmitConstraintErrors":     "port_xmit_constraint_errors",
+		"PortRcvConstraintErrors":      "port_rcv_constraint_errors",
+		"LocalLinkIntegrityErrors":     "local_link_integrity_errors",
+		"ExcessiveBufferOverrunErrors": "excessive_buffer_overrun_errors",
+		"VL15Dropped":                  "VL15_dropped",
+		"PortXmitData":                 "port_xmit_data",
+		"PortRcvData":                  "port_rcv_data",
+		"PortXmitPkts":                 "port_xmit_packets",
+		"PortRcvPkts":                  "port_rcv_packets",
+		"PortXmitWait":                 "port_xmit_wait",
+		"PortUnicastXmitPkts":          "unicast_xmit_packets",
+		"PortUnicastRcvPkts":           "unicast_rcv_packets",
+		"PortMulticastXmitPkts":        "multicast_xmit_packets",
+		"PortMulticastRcvPkts":         "multicast_rcv_packets",
+	}
+	infinibandErrorCounters = []string{
+		"symbol_error",
+		"link_downed",
+		"port_rcv_errors",
+		"local_link_integrity_errors",
+		"excessive_buffer_overrun_errors",
+		"VL15_dropped",
+	}
+)
+
 func (c *Context) CheckInfiniband(argument string) (Check, error) {
-	m := &InfinibandMetadata{}
+	m := &InfinibandMetadata{
+		Port:     1,
+		Warning:  10,
+		Critical: 100,
+	}
 	err := ParseMetadata(m, argument, "Device")
 	if err != nil {
 		return nil, err
 	}
 
 	parts := strings.SplitN(m.Device, ":", 2)
-	if m.Port == 0 && len(parts) == 2 {
+	if len(parts) == 2 {
 		m.Device = parts[0]
 		m.Port, err = strconv.Atoi(parts[1])
 		if err != nil {
@@ -63,7 +105,42 @@ func (c *Context) CheckInfiniband(argument string) (Check, error) {
 		}
 
 		file = fmt.Sprintf("/sys/class/infiniband/%s/ports/%d/rate", m.Device, m.Port)
-		return AssureContent(file, speed_re)
+		status, message = AssureContent(file, speed_re)
+		if status != OK {
+			return status, message
+		}
+
+		message = ""
+
+		for _, counter := range infinibandErrorCounters {
+			file = fmt.Sprintf("/sys/class/infiniband/%s/ports/%d/counters/%s", m.Device, m.Port, counter)
+
+			handle, err := os.Open(file)
+			defer handle.Close()
+			if err != nil {
+				return Unknown, fmt.Sprintf("Could not open file %s: %s", file, err.Error())
+			}
+
+			b, err := ioutil.ReadAll(handle)
+			if err != nil {
+				return Unknown, fmt.Sprintf("Could not read file %s: %s", file, err.Error())
+			}
+
+			value := strings.TrimSuffix(string(b), "\n")
+			i, err := strconv.ParseUint(value, 10, 64)
+			if err != nil {
+				return Unknown, fmt.Sprintf("Could not read parse %s as integer while reading %s: %s", value, counter, err.Error())
+			}
+			if i >= m.Critical && status != Critical {
+				status = Critical
+				message = fmt.Sprintf("Port counter %s is higher than threshold %d: %d", counter, m.Critical, i)
+			} else if i >= m.Warning && status == OK {
+				status = Warning
+				message = fmt.Sprintf("Port counter %s is higher than threshold %d: %d", counter, m.Warning, i)
+			}
+		}
+
+		return status, message
 	}, nil
 }
 

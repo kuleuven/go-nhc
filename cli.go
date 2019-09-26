@@ -15,6 +15,9 @@ import (
 var (
 	fApp = kingpin.New(programName, "Node Health Check")
 
+	fSensuAddr  = fApp.Flag("sensu-addr", "Address of sensu to send check results to").Default("127.0.0.1:3030").String()
+	fStatsdAddr = fApp.Flag("statds-addr", "Address of statsd to send metrics to").Default("127.0.0.1:8125").String()
+
 	fCheckInterfaces      = fApp.Flag("interface", "Check the listed network interfaces").Default("").Strings()
 	fCheckInfinibands     = fApp.Flag("infiniband", "Check the listed infiniband ports, format: '<DEV> port=<PORT> speed=<NUM>'").Default("").Strings()
 	fCheckMounts          = fApp.Flag("mount", "Check whether the listed mounts exist, format: '<MOUNTPOINT> [device=<DEV>] [fs_type=<TYPE>]'").Default("").Strings()
@@ -35,7 +38,7 @@ var (
 	fVerbose = fApp.Flag("verbose", "Verbose mode - show ignored checks and print summarizing message").Short('v').Bool()
 	fList    = fApp.Flag("list", "List all checks that passed").Short('l').Bool()
 	fAll     = fApp.Flag("all", "Run all checks, do not stop on first fatal check").Short('a').Bool()
-	fNoSend  = fApp.Flag("do-not-send", "Do not send check results to sensu agent").Short('s').Bool()
+	fNoSend  = fApp.Flag("do-not-send", "Do not send check results to sensu agent or statsd server").Short('s').Bool()
 )
 
 var (

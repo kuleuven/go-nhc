@@ -21,6 +21,7 @@ type Context struct {
 	cpuInfo *linuxproc.CPUInfo
 	psInfo  []*linuxproc.ProcessStatus
 	jobInfo []Job
+	sensu   *SensuClient
 }
 
 type LabeledCheck struct {
@@ -36,6 +37,10 @@ func main() {
 
 	context := Context{
 		checks: []LabeledCheck{},
+	}
+
+	if !*fNoSend {
+		context.sensu = NewSensuClient(*fSensuAddr)
 	}
 
 	context.RegisterEach("interface_%s", context.CheckInterface, *fCheckInterfaces)
@@ -55,7 +60,7 @@ func main() {
 	context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
 	context.Register("ps_unauthorized", context.CheckUnauthorized, *fCheckUnauthorized)
 
-	context.RunChecks(*fVerbose, *fList, *fAll, !*fNoSend)
+	context.RunChecks(*fVerbose, *fList, *fAll)
 }
 
 func (c *Context) RegisterEach(id_format string, factory CheckFactory, arguments []string) {
@@ -83,7 +88,7 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 	})
 }
 
-func (c *Context) RunChecks(verbose bool, list bool, all bool, send bool) {
+func (c *Context) RunChecks(verbose bool, list bool, all bool) {
 	var global Status
 	var failed int
 
@@ -97,10 +102,11 @@ func (c *Context) RunChecks(verbose bool, list bool, all bool, send bool) {
 			continue
 		}
 
-		if send {
-			err := SendSensuResult(check.Label, status, message)
-			if err != nil {
+		if c.sensu != nil {
+			err := c.sensu.SendResult(check.Label, status, message)
+			if err != nil && verbose {
 				fmt.Printf("Sending result of %s to sensu failed: %s\n", check.Label, err.Error())
+				c.sensu = nil
 			}
 		}
 
