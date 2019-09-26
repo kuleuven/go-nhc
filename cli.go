@@ -33,6 +33,7 @@ var (
 	fCheckUnauthorized    = fApp.Flag("unauthorized", "Check whether unauthorized jobs are running, not governed by the specified job scheduler").Default("").String()
 
 	fVerbose   = fApp.Flag("verbose", "Verbose mode - print message if all checks succeeded").Short('v').Bool()
+	fList      = fApp.Flag("list", "List all runned checks, even if result is OK").Short('l').Bool()
 	fOnlyFatal = fApp.Flag("only-fatal", "Only return non-zero error code on a fatal check status, ignore Warnings").Short('o').Bool()
 	fAll       = fApp.Flag("all", "Run all checks, do not stop on first failed check").Short('a').Bool()
 	fSend      = fApp.Flag("send", "Send check results to sensu agent").Short('s').Bool()
