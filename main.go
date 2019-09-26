@@ -50,7 +50,7 @@ func main() {
 	context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
 	context.Register("ps_unauthorized", context.CheckUnauthorized, *fCheckUnauthorized)
 
-	context.RunChecks(*fVerbose, *fList, *fOnlyFatal, *fAll, *fSend)
+	context.RunChecks(*fVerbose, *fList, *fAll, !*fNoSend)
 }
 
 func (c *Context) RegisterEach(id_format string, factory CheckFactory, arguments []string) {
@@ -75,7 +75,7 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 	c.checks[id] = check
 }
 
-func (c *Context) RunChecks(verbose bool, list bool, onlyFatal bool, all bool, send bool) {
+func (c *Context) RunChecks(verbose bool, list bool, all bool, send bool) {
 	var global Status
 	var failed int
 
@@ -96,20 +96,18 @@ func (c *Context) RunChecks(verbose bool, list bool, onlyFatal bool, all bool, s
 			}
 		}
 
-		if status != OK && (!onlyFatal || status.IsFatal()) {
-			if !all {
-				fmt.Printf("ERROR %s: [%s] %s\n", status.String(), id, message)
-				os.Exit(status.RC())
-			} else {
-				fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
-			}
+		if !all && status.IsFatal() {
+			fmt.Printf("ERROR %s: [%s] %s\n", status.String(), id, message)
+			os.Exit(status.RC())
+		} else if status != OK || list {
+			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
+		}
 
+		if status != OK {
 			failed++
 			if status.Compare(global) > 0 {
 				global = status
 			}
-		} else if list {
-			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
 		}
 	}
 

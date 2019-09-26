@@ -32,11 +32,10 @@ var (
 	fCheckCPUSockets      = fApp.Flag("cpu-sockets", "Check whether the given amount of cpu sockets is present").Default("").String()
 	fCheckUnauthorized    = fApp.Flag("unauthorized", "Check whether unauthorized jobs are running, not governed by the specified job scheduler").Default("").String()
 
-	fVerbose   = fApp.Flag("verbose", "Verbose mode - show ignored checks and print summarizing message").Short('v').Bool()
-	fList      = fApp.Flag("list", "List all checks that passed").Short('l').Bool()
-	fOnlyFatal = fApp.Flag("only-fatal", "Ignore Warnings, only fail on a fatal check status").Short('o').Bool()
-	fAll       = fApp.Flag("all", "Run all checks, do not stop on first failed check").Short('a').Bool()
-	fSend      = fApp.Flag("send", "Send check results to sensu agent").Short('s').Bool()
+	fVerbose = fApp.Flag("verbose", "Verbose mode - show ignored checks and print summarizing message").Short('v').Bool()
+	fList    = fApp.Flag("list", "List all checks that passed").Short('l').Bool()
+	fAll     = fApp.Flag("all", "Run all checks, do not stop on first fatal check").Short('a').Bool()
+	fNoSend  = fApp.Flag("do-not-send", "Do not send check results to sensu agent").Short('s').Bool()
 )
 
 var (
