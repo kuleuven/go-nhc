@@ -9,6 +9,7 @@ const (
 	Warning  Status = 1
 	Critical Status = 2
 	Unknown  Status = 3
+	Ignore   Status = -1
 )
 
 func (s Status) String() string {
@@ -21,6 +22,9 @@ func (s Status) String() string {
 	if s == Critical {
 		return "CRIT"
 	}
+	if s == Ignore {
+		return "IGNORE"
+	}
 	return "UNKNOWN"
 }
 
@@ -28,6 +32,7 @@ func (s Status) RC() int {
 	return int(s)
 }
 
+// Compare two Status - order Critical > Warning > Unknown > OK > Ignore
 func (s Status) Compare(t Status) int {
 	if s == t {
 		return 0

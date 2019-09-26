@@ -4,11 +4,13 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os/exec"
 	"os/user"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	linuxproc "github.com/c9s/goprocinfo/linux"
 	"github.com/inhies/go-bytesize"
@@ -316,6 +318,22 @@ func (c *Context) CheckDiskUsage(argument string) (Check, error) {
 			return Critical, fmt.Sprintf("Free disk space is lower than threshold %s: %s", m.MinFree.String(), bs.String())
 		}
 
+		return OK, ""
+	}, nil
+}
+
+func (c *Context) CheckPort(argument string) (Check, error) {
+	port, err := strconv.Atoi(argument)
+	if err != nil {
+		return nil, err
+	}
+
+	return func() (Status, string) {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf(":%d", port), time.Second)
+		if err != nil {
+			return Critical, fmt.Sprintf("Could not connect to port %d: %s", port, err.Error())
+		}
+		defer conn.Close()
 		return OK, ""
 	}, nil
 }

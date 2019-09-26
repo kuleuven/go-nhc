@@ -40,6 +40,7 @@ func main() {
 	context.RegisterEach("file_%s", context.CheckFile, *fCheckFiles)
 	context.RegisterEach("user_%s", context.CheckUser, *fCheckUsers)
 	context.RegisterEach("ps_%s", context.CheckProcess, *fCheckProcesses)
+	context.RegisterEach("port_%s", context.CheckPort, *fCheckPorts)
 	context.RegisterEach("cmd_%s", context.CheckCommand, *fCheckCommands)
 	context.Register("mem_phys", context.CheckFreeMemory, *fCheckFreeMemory)
 	context.Register("mem_swap", context.CheckFreeSwap, *fCheckFreeSwap)
@@ -80,6 +81,10 @@ func (c *Context) RunChecks(verbose bool, all bool, send bool) {
 
 	for id, check := range c.checks {
 		status, message := check()
+
+		if status == Ignore {
+			continue
+		}
 
 		if send {
 			err := SendSensuResult(id, status, message)
