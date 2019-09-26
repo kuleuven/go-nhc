@@ -15,12 +15,17 @@ var (
 )
 
 type Context struct {
-	checks  map[string]Check
+	checks  []LabeledCheck
 	mounts  *linuxproc.Mounts
 	memInfo *linuxproc.MemInfo
 	cpuInfo *linuxproc.CPUInfo
 	psInfo  []*linuxproc.ProcessStatus
 	jobInfo []Job
+}
+
+type LabeledCheck struct {
+	Label string
+	Check Check
 }
 
 func main() {
@@ -30,7 +35,7 @@ func main() {
 	}
 
 	context := Context{
-		checks: map[string]Check{},
+		checks: []LabeledCheck{},
 	}
 
 	context.RegisterEach("interface_%s", context.CheckInterface, *fCheckInterfaces)
@@ -72,35 +77,38 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 		fmt.Printf("[%s] Parse error: %s\n", id, err.Error())
 		os.Exit(127)
 	}
-	c.checks[id] = check
+	c.checks = append(c.checks, LabeledCheck{
+		Label: id,
+		Check: check,
+	})
 }
 
 func (c *Context) RunChecks(verbose bool, list bool, all bool, send bool) {
 	var global Status
 	var failed int
 
-	for id, check := range c.checks {
-		status, message := check()
+	for _, check := range c.checks {
+		status, message := check.Check()
 
 		if status == Ignore {
 			if verbose {
-				fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
+				fmt.Printf("%s: [%s] %s\n", status.String(), check.Label, message)
 			}
 			continue
 		}
 
 		if send {
-			err := SendSensuResult(id, status, message)
+			err := SendSensuResult(check.Label, status, message)
 			if err != nil {
-				fmt.Printf("Sending result of %s to sensu failed: %s\n", id, err.Error())
+				fmt.Printf("Sending result of %s to sensu failed: %s\n", check.Label, err.Error())
 			}
 		}
 
 		if !all && status.IsFatal() {
-			fmt.Printf("ERROR %s: [%s] %s\n", status.String(), id, message)
+			fmt.Printf("ERROR %s: [%s] %s\n", status.String(), check.Label, message)
 			os.Exit(status.RC())
 		} else if status != OK || list {
-			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
+			fmt.Printf("%s: [%s] %s\n", status.String(), check.Label, message)
 		}
 
 		if status != OK {
