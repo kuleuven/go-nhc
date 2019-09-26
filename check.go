@@ -32,7 +32,30 @@ func (s Status) RC() int {
 	return int(s)
 }
 
-// Compare two Status - order Critical > Warning > Unknown > OK > Ignore
+func (s Status) IsFatal() bool {
+	return s != OK && s != Ignore && s != Warning
+}
+
+// Translate a Status in a non-fatal one
+func (s Status) NonFatal() Status {
+	if !s.IsFatal() {
+		return s
+	} else if s == Critical {
+		return Warning
+	} else {
+		return Ignore
+	}
+}
+
+// Translate a Status in a non-fatal one if mayBeFatal is false
+func (s Status) NonFatalUnless(mayBeFatal bool) Status {
+	if mayBeFatal {
+		return s
+	}
+	return s.NonFatal()
+}
+
+// Compare two - order Critical > Warning > Unknown > OK > Ignore
 func (s Status) Compare(t Status) int {
 	if s == t {
 		return 0

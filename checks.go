@@ -142,7 +142,7 @@ func (c *Context) CheckFreeMemory(amount string) (Check, error) {
 
 		if c.memInfo.MemFree < uint64(th) {
 			bs := bytesize.ByteSize(c.memInfo.MemFree)
-			return Warning, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
+			return Critical, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
 		}
 
 		return OK, ""
@@ -189,7 +189,7 @@ func (c *Context) CheckFreeTotalMemory(amount string) (Check, error) {
 		total := c.memInfo.MemFree + c.memInfo.SwapFree
 		if total < uint64(th) {
 			bs := bytesize.ByteSize(total)
-			return Warning, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
+			return Critical, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
 		}
 
 		return OK, ""
@@ -211,10 +211,10 @@ func (c *Context) CheckDimms(argument string) (Check, error) {
 				dimmsPerChannel = len(channel.Dimms)
 
 				if dimmsPerChannel == 0 {
-					return Warning, "First memory channel has no dimms"
+					return Critical, "First memory channel has no dimms"
 				}
 			} else if dimmsPerChannel != len(channel.Dimms) {
-				return Warning, fmt.Sprintf("Number of dimms differ per memory channel: first has %d channels, %s has %d channels", dimmsPerChannel, channel.Name, len(channel.Dimms))
+				return Critical, fmt.Sprintf("Number of dimms differ per memory channel: first has %d channels, %s has %d channels", dimmsPerChannel, channel.Name, len(channel.Dimms))
 			}
 
 			for _, dimm := range channel.Dimms {
@@ -222,10 +222,10 @@ func (c *Context) CheckDimms(argument string) (Check, error) {
 					dimmSize = dimm.Size
 
 					if dimmSize == 0 {
-						return Warning, "First dimm has no size"
+						return Critical, "First dimm has no size"
 					}
 				} else if dimmSize != dimm.Size {
-					return Warning, fmt.Sprintf("Dimm sizes differ: first dimm has size %d, %s/%s has size %d", dimmSize, channel.Name, dimm.Name, dimm.Size)
+					return Critical, fmt.Sprintf("Dimm sizes differ: first dimm has size %d, %s/%s has size %d", dimmSize, channel.Name, dimm.Name, dimm.Size)
 				}
 			}
 		}
@@ -258,7 +258,7 @@ func (c *Context) CheckHyperthreading(state string) (Check, error) {
 		cpu := c.cpuInfo.NumCPU()
 
 		if (core == cpu) == check {
-			return Warning, fmt.Sprintf("Hyperthreading must be %v, but found %v physical cores and %v cores", check, core, cpu)
+			return Critical, fmt.Sprintf("Hyperthreading must be %v, but found %v physical cores and %v cores", check, core, cpu)
 		}
 
 		return OK, ""
@@ -344,10 +344,13 @@ type ProcessMetadata struct {
 	User    string
 	Start   bool
 	Restart bool
+	Fatal   bool
 }
 
 func (c *Context) CheckProcess(argument string) (Check, error) {
-	m := &ProcessMetadata{}
+	m := &ProcessMetadata{
+		Fatal: true,
+	}
 	err := ParseMetadata(m, argument, "Service")
 	if err != nil {
 		return nil, err
@@ -371,11 +374,11 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 				if m.User != "" {
 					user, err := user.Lookup(m.User)
 					if err != nil {
-						return Unknown, fmt.Sprintf("Could not lookup %s: %s", m.User, err.Error())
+						return Unknown.NonFatalUnless(m.Fatal), fmt.Sprintf("Could not lookup %s: %s", m.User, err.Error())
 					}
 					uid, err := strconv.ParseUint(user.Uid, 10, 64)
 					if err != nil {
-						return Unknown, fmt.Sprintf("Could not parse uid %s: %s", user.Uid, err.Error())
+						return Unknown.NonFatalUnless(m.Fatal), fmt.Sprintf("Could not parse uid %s: %s", user.Uid, err.Error())
 					}
 					if pStatus.EffectiveUid != uid {
 						return Warning, fmt.Sprintf("Process %s is not running under user %d (%s), but %d", uid, m.User, pStatus.EffectiveUid)
@@ -398,12 +401,12 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 			cmd := exec.Command("/usr/bin/systemctl", action, m.Service)
 			err := cmd.Run()
 			if err != nil {
-				return Critical, fmt.Sprintf("Process %s not found, and could not start: %s", m.Service, err.Error())
+				return Critical.NonFatalUnless(m.Fatal), fmt.Sprintf("Process %s not found, and could not start: %s", m.Service, err.Error())
 			}
 			return Warning, fmt.Sprintf("Process %s not found, %sed it successfully", m.Service, action)
 		}
 
-		return Critical, fmt.Sprintf("Process %s not found", m.Service)
+		return Critical.NonFatalUnless(m.Fatal), fmt.Sprintf("Process %s not found", m.Service)
 	}, nil
 }
 
