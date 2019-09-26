@@ -87,8 +87,6 @@ func (c *Context) RunChecks(verbose bool, list bool, onlyFatal bool, all bool, s
 				fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
 			}
 			continue
-		} else if list || status != OK {
-			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
 		}
 
 		if send {
@@ -98,17 +96,20 @@ func (c *Context) RunChecks(verbose bool, list bool, onlyFatal bool, all bool, s
 			}
 		}
 
-		if status != OK {
-			if !onlyFatal || status.IsFatal() {
-				if !all {
-					os.Exit(status.RC())
-				}
-
-				failed++
-				if status.Compare(global) > 0 {
-					global = status
-				}
+		if status != OK && (!onlyFatal || status.IsFatal()) {
+			if !all {
+				fmt.Printf("ERROR %s: [%s] %s\n", status.String(), id, message)
+				os.Exit(status.RC())
+			} else {
+				fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
 			}
+
+			failed++
+			if status.Compare(global) > 0 {
+				global = status
+			}
+		} else if list {
+			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
 		}
 	}
 
