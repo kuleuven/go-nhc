@@ -50,7 +50,7 @@ func main() {
 	context.Register("cpu_hyperthreading", context.CheckHyperthreading, *fCheckHyperthreading)
 	context.Register("ps_unauthorized", context.CheckUnauthorized, *fCheckUnauthorized)
 
-	context.RunChecks(*fVerbose, *fAll, *fSend)
+	context.RunChecks(*fVerbose, *fOnlyFatal, *fAll, *fSend)
 }
 
 func (c *Context) RegisterEach(id_format string, factory CheckFactory, arguments []string) {
@@ -75,7 +75,7 @@ func (c *Context) Register(id string, factory CheckFactory, argument string) {
 	c.checks[id] = check
 }
 
-func (c *Context) RunChecks(verbose bool, all bool, send bool) {
+func (c *Context) RunChecks(verbose bool, onlyFatal bool, all bool, send bool) {
 	var global Status
 	var failed int
 
@@ -96,13 +96,15 @@ func (c *Context) RunChecks(verbose bool, all bool, send bool) {
 		if status != OK {
 			fmt.Printf("%s: [%s] %s\n", status.String(), id, message)
 
-			if !all {
-				os.Exit(status.RC())
-			}
+			if !onlyFatal || status.IsFatal() {
+				if !all {
+					os.Exit(status.RC())
+				}
 
-			failed++
-			if status.Compare(global) > 0 {
-				global = status
+				failed++
+				if status.Compare(global) > 0 {
+					global = status
+				}
 			}
 		}
 	}
