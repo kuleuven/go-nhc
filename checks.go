@@ -403,7 +403,7 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 			if err != nil {
 				return Critical.NonFatalUnless(m.Fatal), fmt.Sprintf("Process %s not found, and could not start: %s", m.Service, err.Error())
 			}
-			return Warning, fmt.Sprintf("Process %s not found, %sed it successfully", m.Service, action)
+			return Critical, fmt.Sprintf("Process %s not found, %sed it successfully", m.Service, action)
 		}
 
 		return Critical.NonFatalUnless(m.Fatal), fmt.Sprintf("Process %s not found", m.Service)
