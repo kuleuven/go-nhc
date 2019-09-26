@@ -47,9 +47,15 @@ func ListMemoryChannels() ([]MemoryChannel, error) {
 }
 
 func ListDimms(mc string) ([]Dimm, error) {
-	files, err := filepath.Glob(fmt.Sprintf("%s/%s/dimm*", memory_channels_folder, mc))
-	if err != nil {
-		return nil, err
+	files := []string{}
+
+	for _, prefix := range []string{"dimm", "rank"} {
+		prefixed_files, err := filepath.Glob(fmt.Sprintf("%s/%s/%s*", memory_channels_folder, mc, prefix))
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files, prefixed_files...)
 	}
 
 	result := make([]Dimm, 0, len(files))
