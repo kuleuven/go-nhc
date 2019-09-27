@@ -10,8 +10,6 @@ github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365 h1:ECW73yc9MY79
 github.com/iancoleman/strcase v0.0.0-20190422225806-e506e3ef7365/go.mod h1:SK73tn/9oHe+/Y0h39VT4UCxmurVJkR5NA7kMEAOgSE=
 github.com/inhies/go-bytesize v0.0.0-20151001220322-5990f52c6ad6 h1:INwOYlnKmWV2bTqTnAKTeC/A+5gCcEHE3ayWOGAYfmA=
 github.com/inhies/go-bytesize v0.0.0-20151001220322-5990f52c6ad6/go.mod h1:KrtyD5PFj++GKkFS/7/RRrfnRhAMGQwy75GLCHWrCNs=
-github.com/netdata/go-statsd v0.0.5 h1:TNUTIdd9G/aLEi67l23U4lZfrujEBVfe6SqAcqnjWQw=
-github.com/netdata/go-statsd v0.0.5/go.mod h1:1f3YPXeOwfPBm8W7Rj6l6A6umSaIfWu4MortwOGMBk0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
