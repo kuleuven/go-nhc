@@ -38,29 +38,6 @@ type InfinibandMetadata struct {
 }
 
 var (
-	infinibandCounters = map[string]string{
-		"SymbolErrorCounter":           "symbol_error",
-		"LinkErrorRecoveryCounter":     "link_error_recovery",
-		"LinkDownedCounter":            "link_downed",
-		"PortRcvErrors":                "port_rcv_errors",
-		"PortRcvRemotePhysicalErrors":  "port_rcv_remote_physical_errors",
-		"PortRcvSwitchRelayErrors":     "port_rcv_switch_relay_errors",
-		"PortXmitDiscards":             "port_xmit_discards",
-		"PortXmitConstraintErrors":     "port_xmit_constraint_errors",
-		"PortRcvConstraintErrors":      "port_rcv_constraint_errors",
-		"LocalLinkIntegrityErrors":     "local_link_integrity_errors",
-		"ExcessiveBufferOverrunErrors": "excessive_buffer_overrun_errors",
-		"VL15Dropped":                  "VL15_dropped",
-		"PortXmitData":                 "port_xmit_data",
-		"PortRcvData":                  "port_rcv_data",
-		"PortXmitPkts":                 "port_xmit_packets",
-		"PortRcvPkts":                  "port_rcv_packets",
-		"PortXmitWait":                 "port_xmit_wait",
-		"PortUnicastXmitPkts":          "unicast_xmit_packets",
-		"PortUnicastRcvPkts":           "unicast_rcv_packets",
-		"PortMulticastXmitPkts":        "multicast_xmit_packets",
-		"PortMulticastRcvPkts":         "multicast_rcv_packets",
-	}
 	infinibandErrorCounters = []string{
 		"symbol_error",
 		"link_downed",
@@ -458,7 +435,7 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 						return Unknown.NonFatalUnless(m.Fatal), fmt.Sprintf("Could not parse uid %s: %s", user.Uid, err.Error())
 					}
 					if pStatus.EffectiveUid != uid {
-						return Warning, fmt.Sprintf("Process %s is not running under user %d (%s), but %d", uid, m.User, pStatus.EffectiveUid)
+						return Warning, fmt.Sprintf("Process %s is not running under user %d (%s), but %d", m.Service, uid, m.User, pStatus.EffectiveUid)
 					}
 				}
 

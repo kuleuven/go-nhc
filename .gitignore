@@ -1,1 +1,4 @@
 go-nhc
+go-nhc.1.gz
+go-nhc.bash_completion
+go-nhc.zsh_completion
