@@ -170,16 +170,6 @@ func (c *Context) CheckFile(file string) (Check, error) {
 	}, nil
 }
 
-func (c *Context) CheckUser(username string) (Check, error) {
-	return func() (Status, string) {
-		_, err := user.Lookup(username)
-		if err != nil {
-			return Critical, fmt.Sprintf("User information for %s could not be retrieved: %s", username, err.Error())
-		}
-		return OK, ""
-	}, nil
-}
-
 func (c *Context) CheckFreeMemory(amount string) (Check, error) {
 	th, err := bytesize.Parse(amount)
 	if err != nil {
