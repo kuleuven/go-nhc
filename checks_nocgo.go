@@ -59,8 +59,9 @@ func (c *Context) CheckUnauthorized(argument string) (Check, error) {
 			if err != nil {
 				return Critical, fmt.Sprintf("Process %d is runned by unknown uid %d: %s", pStatus.Pid, pStatus.RealUid, err.Error())
 			}
+			groupsString := strings.TrimRight(string(groups), "\n")
 			groupInts := []uint64{}
-			for _, group := range strings.Split(string(groups), " ") {
+			for _, group := range strings.Split(groupsString, " ") {
 				groupInt, err := strconv.ParseUint(group, 10, 64)
 				if err != nil {
 					return Critical, fmt.Sprintf("Could not parse group ids for user %d: %s", pStatus.RealUid, err.Error())
