@@ -5,8 +5,8 @@ package main
 import (
 	"fmt"
 	"os/exec"
-    "strconv"
-    "strings"
+	"strconv"
+	"strings"
 )
 
 func (c *Context) CheckUnauthorized(argument string) (Check, error) {
@@ -54,8 +54,8 @@ func (c *Context) CheckUnauthorized(argument string) (Check, error) {
 			}
 
 			// Check whether the uid is allowed because the corresponding user is in the group corresponding with the job gid (cfr. pbs_inode)
-            cmd := exec.Command("/bin/id", "-G", fmt.Sprintf("%d", pStatus.RealUid))
-		    groups, err := cmd.Output()
+			cmd := exec.Command("/bin/id", "-G", fmt.Sprintf("%d", pStatus.RealUid))
+			groups, err := cmd.Output()
 			if err != nil {
 				return Critical, fmt.Sprintf("Process %d is runned by unknown uid %d: %s", pStatus.Pid, pStatus.RealUid, err.Error())
 			}

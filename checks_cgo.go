@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"os/user"
+	"strconv"
 )
 
 func (c *Context) CheckUnauthorized(argument string) (Check, error) {
