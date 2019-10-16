@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os/user"
 	"strconv"
+
+	"gitea.icts.kuleuven.be/ceif-lnx/go-nhc/utils"
 )
 
 func (c *Context) CheckUnauthorized(argument string) (Check, error) {
@@ -26,14 +28,14 @@ func (c *Context) CheckUnauthorized(argument string) (Check, error) {
 	return func() (Status, string) {
 		if c.psInfo == nil {
 			var err error
-			c.psInfo, err = ListProcesses()
+			c.psInfo, err = utils.ListProcesses()
 			if err != nil {
 				return Unknown, fmt.Sprintf("Could not parse process info: %s", err.Error())
 			}
 		}
 		if c.jobInfo == nil {
 			var err error
-			c.jobInfo, err = ListPBSJobs()
+			c.jobInfo, err = utils.ListPBSJobs()
 			if err != nil {
 				return Unknown, fmt.Sprintf("Could not parse job info for %s: %s", argument, err.Error())
 			}

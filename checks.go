@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"gitea.icts.kuleuven.be/ceif-lnx/go-nhc/utils"
 	linuxproc "github.com/c9s/goprocinfo/linux"
 	"github.com/inhies/go-bytesize"
 )
@@ -242,7 +243,7 @@ func (c *Context) CheckFreeTotalMemory(amount string) (Check, error) {
 
 func (c *Context) CheckDimms(argument string) (Check, error) {
 	return func() (Status, string) {
-		channels, err := ListMemoryChannels()
+		channels, err := utils.ListMemoryChannels()
 		if err != nil {
 			return Unknown, fmt.Sprintf("Could not parse dimm info: %s", err.Error())
 		}
@@ -347,7 +348,7 @@ func (c *Context) CheckDiskUsage(argument string) (Check, error) {
 	}
 
 	return func() (Status, string) {
-		stat, err := DiskUsage(m.MountPoint)
+		stat, err := utils.DiskUsage(m.MountPoint)
 		if err != nil {
 			return Unknown, fmt.Sprintf("Could not retrieve disk usage: %s", err.Error())
 		}
@@ -407,7 +408,7 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 	return func() (Status, string) {
 		if c.psInfo == nil {
 			var err error
-			c.psInfo, err = ListProcesses()
+			c.psInfo, err = utils.ListProcesses()
 			if err != nil {
 				return Unknown, fmt.Sprintf("Could not parse process info: %s", err.Error())
 			}

@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gitea.icts.kuleuven.be/ceif-lnx/go-nhc/utils"
 	linuxproc "github.com/c9s/goprocinfo/linux"
 )
 
@@ -20,7 +21,7 @@ type Context struct {
 	memInfo *linuxproc.MemInfo
 	cpuInfo *linuxproc.CPUInfo
 	psInfo  []*linuxproc.ProcessStatus
-	jobInfo []Job
+	jobInfo []utils.Job
 	sensu   *SensuClient
 }
 
