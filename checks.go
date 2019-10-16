@@ -353,13 +353,13 @@ func (c *Context) CheckDiskUsage(argument string) (Check, error) {
 			return Unknown, fmt.Sprintf("Could not retrieve disk usage: %s", err.Error())
 		}
 
-		if m.MaxUsedPercent > 0 && stat.Used*100 > stat.All*uint64(m.MaxUsedPercent) {
-			bs := bytesize.ByteSize(stat.Used)
+		if m.MaxUsedPercent > 0 && stat.BlocksUsed*100 > stat.Blocks*uint64(m.MaxUsedPercent) {
+			bs := bytesize.ByteSize(stat.BlocksUsed)
 			return Critical, fmt.Sprintf("Disk usage is above %d%%: %s", m.MaxUsedPercent, bs.String())
 		}
 
-		if uint64(m.MinFree) > 0 && stat.Free < uint64(m.MinFree) {
-			bs := bytesize.ByteSize(stat.Free)
+		if uint64(m.MinFree) > 0 && stat.BlocksFree < uint64(m.MinFree) {
+			bs := bytesize.ByteSize(stat.BlocksFree)
 			return Critical, fmt.Sprintf("Free disk space is lower than threshold %s: %s", m.MinFree.String(), bs.String())
 		}
 
