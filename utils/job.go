@@ -64,14 +64,18 @@ func getJobIds(path string) (uid uint64, gid uint64, err error) {
 		return
 	}
 
-	uid, err = strconv.ParseUint(job.Uid, 10, 64)
-	if err != nil {
-		return
+	if job.Uid != "" {
+		uid, err = strconv.ParseUint(job.Uid, 10, 64)
+		if err != nil {
+			return
+		}
 	}
 
-	gid, err = strconv.ParseUint(job.Gid, 10, 64)
-	if err != nil {
-		return
+	if job.Gid != "" {
+		gid, err = strconv.ParseUint(job.Gid, 10, 64)
+		if err != nil {
+			return
+		}
 	}
 
 	return
