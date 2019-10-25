@@ -387,6 +387,7 @@ type ProcessMetadata struct {
 	Service string
 	Daemon  string
 	User    string
+	Count   uint
 	Start   bool
 	Restart bool
 	Fatal   bool
@@ -395,6 +396,7 @@ type ProcessMetadata struct {
 func (c *Context) CheckProcess(argument string) (Check, error) {
 	m := &ProcessMetadata{
 		Fatal: true,
+		Count: 1,
 	}
 	err := ParseMetadata(m, argument, "Service")
 	if err != nil {
@@ -414,6 +416,8 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 			}
 		}
 
+		var seen uint
+
 		for _, pStatus := range c.psInfo {
 			if pStatus.Name == m.Daemon {
 				if m.User != "" {
@@ -426,12 +430,26 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 						return Unknown.NonFatalUnless(m.Fatal), fmt.Sprintf("Could not parse uid %s: %s", user.Uid, err.Error())
 					}
 					if pStatus.EffectiveUid != uid {
-						return Warning, fmt.Sprintf("Process %s is not running under user %d (%s), but %d", m.Service, uid, m.User, pStatus.EffectiveUid)
+						return Critical, fmt.Sprintf("Process %s is not running under user %d (%s), but %d", m.Service, uid, m.User, pStatus.EffectiveUid)
 					}
 				}
 
-				return OK, ""
+				seen++
 			}
+		}
+
+		if m.Count > 0 {
+			if seen < m.Count && seen > 0 {
+				return Warning, fmt.Sprintf("Process count is not reached: expected %d, got %d", m.Count, seen)
+			}
+
+			if seen > m.Count {
+				return Warning, fmt.Sprintf("Process count is exceeded: expected %d, got %d", m.Count, seen)
+			}
+		}
+
+		if seen > 0 {
+			return OK, ""
 		}
 
 		if m.Start || m.Restart {
