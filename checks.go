@@ -386,6 +386,7 @@ func (c *Context) CheckPort(argument string) (Check, error) {
 type ProcessMetadata struct {
 	Service string
 	Daemon  string
+	Cmdline string
 	User    string
 	Count   uint
 	Start   bool
@@ -420,6 +421,26 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 
 		for _, pStatus := range c.psInfo {
 			if pStatus.Name == m.Daemon {
+				if m.Cmdline != "" {
+					pCmdline, err := linuxproc.ReadProcessCmdline(fmt.Sprintf("/proc/%d/cmdline", pStatus.Pid))
+					if err != nil {
+						return Unknown.NonFatalUnless(m.Fatal), fmt.Sprintf("Could not parse process cmdline: %s", err.Error())
+					}
+
+					if strings.Contains(m.Cmdline, " ") {
+						// Compare substring
+						if m.Cmdline != pCmdline && !strings.HasPrefix(pCmdline, m.Cmdline+" ") {
+							continue
+						}
+					} else {
+						// Compare second part
+						parts := strings.SplitN(pCmdline, " ", 3)
+						if len(parts) < 2 || m.Cmdline != parts[1] {
+							continue
+						}
+					}
+				}
+
 				if m.User != "" {
 					user, err := user.Lookup(m.User)
 					if err != nil {
