@@ -408,6 +408,8 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 		m.Daemon = m.Service
 	}
 
+	m.Cmdline = strings.Replace(m.Cmdline, "+", " ", -1)
+
 	return func() (Status, string) {
 		if c.psInfo == nil {
 			var err error

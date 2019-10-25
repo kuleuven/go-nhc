@@ -41,6 +41,9 @@ func (s *SensuClient) Send(r *SensuResult) error {
 	}
 
 	conn, err := net.Dial("tcp", s.Address)
+	if err != nil {
+		return err
+	}
 	defer conn.Close()
 
 	fmt.Fprintln(conn, string(b))
