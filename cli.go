@@ -45,6 +45,7 @@ var (
 	metadataMapRegex = regexp.MustCompile("[=]")
 	stringType       = reflect.TypeOf("")
 	intType          = reflect.TypeOf(0)
+	uintType         = reflect.TypeOf(uint(0))
 	uint64Type       = reflect.TypeOf(uint64(0))
 	boolType         = reflect.TypeOf(false)
 	byteSizeType     = reflect.TypeOf(bytesize.ByteSize(0))
@@ -87,6 +88,13 @@ func ParseMetadata(meta interface{}, argument string, default_key string) error 
 				return err
 			}
 			val = reflect.ValueOf(i)
+
+		case uintType:
+			i, err := strconv.ParseUint(str, 10, 32)
+			if err != nil {
+				return err
+			}
+			val = reflect.ValueOf(uint(i))
 
 		case uint64Type:
 			i, err := strconv.ParseUint(str, 10, 64)
