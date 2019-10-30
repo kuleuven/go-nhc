@@ -426,7 +426,8 @@ func (c *Context) CheckProcess(argument string) (Check, error) {
 				if m.Cmdline != "" {
 					pCmdline, err := linuxproc.ReadProcessCmdline(fmt.Sprintf("/proc/%d/cmdline", pStatus.Pid))
 					if err != nil {
-						return Unknown.NonFatalUnless(m.Fatal), fmt.Sprintf("Could not parse process cmdline: %s", err.Error())
+						// Ignore - process is probably gone
+						continue
 					}
 
 					if strings.Contains(m.Cmdline, " ") {
