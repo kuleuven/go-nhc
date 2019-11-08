@@ -24,10 +24,7 @@ type Job struct {
 func ListPBSJobs() (jobs []Job, err error) {
 	err = filepath.Walk(mom_priv_jobs, func(path string, info os.FileInfo, err error) error {
 		if filepath.Ext(path) == ".JB" {
-			name := filepath.Base(path)
-			name = name[:len(name)-3]
-
-			uid, gid, err := getJobIds(path)
+			name, uid, gid, err := getJobInfo(path)
 			if err != nil {
 				return err
 			}
@@ -42,11 +39,12 @@ func ListPBSJobs() (jobs []Job, err error) {
 
 type Jobxml struct {
 	XMLName xml.Name `xml:"job"`
+	JobID   string   `xml:"jobid"`
 	Uid     string   `xml:"execution_uid"`
 	Gid     string   `xml:"execution_gid"`
 }
 
-func getJobIds(path string) (uid uint64, gid uint64, err error) {
+func getJobInfo(path string) (jobid string, uid uint64, gid uint64, err error) {
 	file, err := os.Open(path)
 	defer file.Close()
 	if err != nil {
@@ -63,6 +61,8 @@ func getJobIds(path string) (uid uint64, gid uint64, err error) {
 	if err != nil {
 		return
 	}
+
+	jobid = job.JobID
 
 	if job.Uid != "" {
 		uid, err = strconv.ParseUint(job.Uid, 10, 64)
