@@ -185,9 +185,9 @@ func (c *Context) CheckFreeMemory(amount string) (Check, error) {
 			}
 		}
 
-		if c.memInfo.MemFree < uint64(th) {
-			bs := bytesize.ByteSize(c.memInfo.MemFree)
-			return Critical, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
+		if c.memInfo.MemAvailable < uint64(th) {
+			bs := bytesize.ByteSize(c.memInfo.MemAvailable)
+			return Critical, fmt.Sprintf("Available memory is less than threshold %s: %s", th.String(), bs.String())
 		}
 
 		return OK, ""
@@ -231,10 +231,10 @@ func (c *Context) CheckFreeTotalMemory(amount string) (Check, error) {
 			}
 		}
 
-		total := c.memInfo.MemFree + c.memInfo.SwapFree
+		total := c.memInfo.MemAvailable + c.memInfo.SwapFree
 		if total < uint64(th) {
 			bs := bytesize.ByteSize(total)
-			return Critical, fmt.Sprintf("Free memory is less than threshold %s: %s", th.String(), bs.String())
+			return Critical, fmt.Sprintf("Available memory is less than threshold %s: %s", th.String(), bs.String())
 		}
 
 		return OK, ""
