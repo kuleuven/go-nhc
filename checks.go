@@ -127,6 +127,7 @@ type MountMetadata struct {
 	Device     string
 	FsType     string
 	ReadOnly   bool
+	Remount    bool
 }
 
 func (c *Context) CheckMount(argument string) (Check, error) {
@@ -159,6 +160,15 @@ func (c *Context) CheckMount(argument string) (Check, error) {
 
 				return OK, ""
 			}
+		}
+
+		if m.Remount {
+			cmd := exec.Command("/usr/bin/mount", m.MountPoint)
+			err = cmd.Run()
+			if err != nil {
+				return Critical, fmt.Sprintf("Mount point %s is not mounted, remount failed: %s", m.MountPoint, err)
+			}
+			return Warning, fmt.Sprintf("Mount point %s was not mounted, did remount it", m.MountPoint)
 		}
 
 		return Critical, fmt.Sprintf("Mount point %s is not mounted", m.MountPoint)

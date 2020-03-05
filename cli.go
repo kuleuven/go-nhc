@@ -20,7 +20,7 @@ var (
 
 	fCheckInterfaces      = fApp.Flag("interface", "Check the listed network interfaces").Default("").Strings()
 	fCheckInfinibands     = fApp.Flag("infiniband", "Check the listed infiniband ports, format: '<DEV> port=<PORT> speed=<NUM>'").Default("").Strings()
-	fCheckMounts          = fApp.Flag("mount", "Check whether the listed mounts exist, format: '<MOUNTPOINT> [device=<DEV>] [fs_type=<TYPE>]'").Default("").Strings()
+	fCheckMounts          = fApp.Flag("mount", "Check whether the listed mounts exist, format: '<MOUNTPOINT> [device=<DEV>] [fs_type=<TYPE>] [remount=<BOOL>]'").Default("").Strings()
 	fCheckDiskUsages      = fApp.Flag("disk-usage", "Check whether the disk usage is below the threshold, format: 'mountpoint [max_used_percent=<INT>] [min_free=<SIZE>]'").Default("").Strings()
 	fCheckFiles           = fApp.Flag("file", "Check whether the listed files exist").Default("").Strings()
 	fCheckUsers           = fApp.Flag("user", "Check whether the listed users exist").Default("").Strings()
