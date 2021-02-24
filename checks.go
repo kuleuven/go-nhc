@@ -26,7 +26,13 @@ const (
 
 func (c *Context) CheckInterface(iface string) (Check, error) {
 	return func() (Status, string) {
-		return AssureExists(fmt.Sprintf("/sys/class/net/%s", iface))
+		if iface == "lo" {
+			return AssureExists(fmt.Sprintf("/sys/class/net/%s", iface))
+		}
+
+		reUP := regexp.MustCompile(`up`)
+
+		return AssureContent(fmt.Sprintf("/sys/class/net/%s/operstate", iface), reUP)
 	}, nil
 }
 
