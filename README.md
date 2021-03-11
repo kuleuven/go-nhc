@@ -104,3 +104,18 @@ The script `/usr/bin/nhc` will then accept the followin useful options:
 ## Sensu/Statsd integration
 
 By default, `go-nhc` will send results of each check as passive check result to the local sensu-agent, and statistics will be sent to the sensu-agent statsd port. To disable this behaviour, add the `-s` option or edit the code :-).
+
+## How to build
+
+Building and installation is easy but should be packaged:
+
+```bash
+cd <folder>
+go build -o go-nhc .
+./go-nhc --completion-script-bash > go-nhc.bash_completion
+./go-nhc --help-man | gzip > go-nhc.1.gz
+mv go-nhc /usr/bin
+mv src/usr/sbin/nhc /usr/sbin
+mv go-nhc.bash_completion /etc/bash_completion.d/go-nhc
+mv go-nhc.1.gz /usr/share/man/man1/go-nhc.1.gz
+```
